@@ -6,15 +6,12 @@ libcolor-temp.so: color_temp.o
 	gcc -shared -Wall -o libcolor-temp.so color_temp.o -lm
 color_temp.o: color_temp.c color_temp.h color_temp_table.h
 	gcc -c -Wall -Werror -fpic color_temp.c
-.PHONY: install
-install:
-	cp libcolor-temp.so /usr/lib/
-	chmod 0755 /usr/lib/libcolor-temp.so
-	ldconfig
-.PHONY: uninstall
-uninstall:
-	rm /usr/lib/libcolor-temp.so
-	ldconfig
+deb: libcolor-temp.so
+	mkdir -p libcolor-temp/usr/local/bin
+	cp libcolor-temp.so libcolor-temp/usr/local/bin/
+	cp -r DEBIAN libcolor-temp/
+	dpkg-deb --build libcolor-temp
 .PHONY: clean
 clean:
-	rm -f test libcolor-temp.so color_temp.o
+	rm -f test libcolor-temp.deb libcolor-temp.so color_temp.o
+	rm -rf libcolor-temp/
