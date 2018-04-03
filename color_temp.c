@@ -61,6 +61,16 @@
 //   end
 // end
 
+#define MIN(x,y) ({ \
+    typeof(x) _x = (x);     \
+    typeof(y) _y = (y);     \
+    _x < _y ? _x : _y; })
+
+#define MAX(x,y) ({ \
+    typeof(x) _x = (x);     \
+    typeof(y) _y = (y);     \
+    _x > _y ? _x : _y; })
+
 int
 interp_color_temp(
     color_temp_t *out
@@ -69,11 +79,11 @@ interp_color_temp(
   //---------------
   // initialization
   static bool initialized = false;
-  static color_temp_t m[COLOR_TEMP_TABLE_LEN];
+  static color_temp_entry_t m[COLOR_TEMP_TABLE_LEN];
   if (!initialized) {
     // d
     int ii;
-    color_temp_t d[COLOR_TEMP_TABLE_LEN-1];
+    color_temp_entry_t d[COLOR_TEMP_TABLE_LEN-1];
     for (ii=0; ii<COLOR_TEMP_TABLE_LEN-1; ii++) {
       d[ii].intensity  = color_temp_table[ii+1].intensity  - color_temp_table[ii].intensity;
       d[ii].norm_red   = color_temp_table[ii+1].norm_red   - color_temp_table[ii].norm_red;
@@ -121,9 +131,9 @@ interp_color_temp(
     out->norm_red   = color_temp_table[0].norm_red;
     out->norm_green = color_temp_table[0].norm_green;
     out->norm_blue  = color_temp_table[0].norm_blue;
-    out->byte_red   = color_temp_table[0].byte_red;
-    out->byte_green = color_temp_table[0].byte_green;
-    out->byte_blue  = color_temp_table[0].byte_blue;
+    out->byte_red   = (int)nearbyint(color_temp_table[0].byte_red  );
+    out->byte_green = (int)nearbyint(color_temp_table[0].byte_green);
+    out->byte_blue  = (int)nearbyint(color_temp_table[0].byte_blue );
 
     fprintf(stderr, "returning data for kelvin == %f\n", out->kelvin);
     return -1;
@@ -136,9 +146,9 @@ interp_color_temp(
     out->norm_red   = color_temp_table[COLOR_TEMP_TABLE_LEN-1].norm_red;
     out->norm_green = color_temp_table[COLOR_TEMP_TABLE_LEN-1].norm_green;
     out->norm_blue  = color_temp_table[COLOR_TEMP_TABLE_LEN-1].norm_blue;
-    out->byte_red   = color_temp_table[COLOR_TEMP_TABLE_LEN-1].byte_red;
-    out->byte_green = color_temp_table[COLOR_TEMP_TABLE_LEN-1].byte_green;
-    out->byte_blue  = color_temp_table[COLOR_TEMP_TABLE_LEN-1].byte_blue;
+    out->byte_red   = (int)nearbyint(color_temp_table[COLOR_TEMP_TABLE_LEN-1].byte_red  );
+    out->byte_green = (int)nearbyint(color_temp_table[COLOR_TEMP_TABLE_LEN-1].byte_green);
+    out->byte_blue  = (int)nearbyint(color_temp_table[COLOR_TEMP_TABLE_LEN-1].byte_blue );
 
     fprintf(stderr, "returning data for kelvin == %f\n", out->kelvin);
     return -2;
@@ -154,7 +164,7 @@ interp_color_temp(
   u[2] = u[1] * u[1];
   u[3] = u[2] * u[1];
 
-  double cubS_u[16] = { \
+  double cubS_u[16] = {
     +2*u[3] -3*u[2] +0*u[1] +1*u[0],
     +1*u[3] -2*u[2] +1*u[1] +0*u[0],
     -2*u[3] +3*u[2] +0*u[1] +0*u[0],
@@ -163,12 +173,12 @@ interp_color_temp(
 
   // interp = [y(n) m(n) y(n+1) m(n+1)] * cubS * [u[3] u[2] u[1] u[0]]';
   out->intensity  = color_temp_table[n].intensity  * cubS_u[0] + m[n].intensity  * cubS_u[1] + color_temp_table[n+1].intensity  * cubS_u[2] + m[n+1].intensity  * cubS_u[3];
-  out->norm_red   = color_temp_table[n].norm_red   * cubS_u[0] + m[n].norm_red   * cubS_u[1] + color_temp_table[n+1].norm_red   * cubS_u[2] + m[n+1].norm_red   * cubS_u[3];
-  out->norm_green = color_temp_table[n].norm_green * cubS_u[0] + m[n].norm_green * cubS_u[1] + color_temp_table[n+1].norm_green * cubS_u[2] + m[n+1].norm_green * cubS_u[3];
-  out->norm_blue  = color_temp_table[n].norm_blue  * cubS_u[0] + m[n].norm_blue  * cubS_u[1] + color_temp_table[n+1].norm_blue  * cubS_u[2] + m[n+1].norm_blue  * cubS_u[3];
-  out->byte_red   = nearbyint(color_temp_table[n].byte_red   * cubS_u[0] + m[n].byte_red   * cubS_u[1] + color_temp_table[n+1].byte_red   * cubS_u[2] + m[n+1].byte_red   * cubS_u[3]);
-  out->byte_green = nearbyint(color_temp_table[n].byte_green * cubS_u[0] + m[n].byte_green * cubS_u[1] + color_temp_table[n+1].byte_green * cubS_u[2] + m[n+1].byte_green * cubS_u[3]);
-  out->byte_blue  = nearbyint(color_temp_table[n].byte_blue  * cubS_u[0] + m[n].byte_blue  * cubS_u[1] + color_temp_table[n+1].byte_blue  * cubS_u[2] + m[n+1].byte_blue  * cubS_u[3]);
+  out->norm_red   = MIN(1, MAX(0, color_temp_table[n].norm_red   * cubS_u[0] + m[n].norm_red   * cubS_u[1] + color_temp_table[n+1].norm_red   * cubS_u[2] + m[n+1].norm_red   * cubS_u[3]));
+  out->norm_green = MIN(1, MAX(0, color_temp_table[n].norm_green * cubS_u[0] + m[n].norm_green * cubS_u[1] + color_temp_table[n+1].norm_green * cubS_u[2] + m[n+1].norm_green * cubS_u[3]));
+  out->norm_blue  = MIN(1, MAX(0, color_temp_table[n].norm_blue  * cubS_u[0] + m[n].norm_blue  * cubS_u[1] + color_temp_table[n+1].norm_blue  * cubS_u[2] + m[n+1].norm_blue  * cubS_u[3]));
+  out->byte_red   = nearbyint(MIN(255, MAX(0, color_temp_table[n].byte_red   * cubS_u[0] + m[n].byte_red   * cubS_u[1] + color_temp_table[n+1].byte_red   * cubS_u[2] + m[n+1].byte_red   * cubS_u[3])));
+  out->byte_green = nearbyint(MIN(255, MAX(0, color_temp_table[n].byte_green * cubS_u[0] + m[n].byte_green * cubS_u[1] + color_temp_table[n+1].byte_green * cubS_u[2] + m[n+1].byte_green * cubS_u[3])));
+  out->byte_blue  = nearbyint(MIN(255, MAX(0, color_temp_table[n].byte_blue  * cubS_u[0] + m[n].byte_blue  * cubS_u[1] + color_temp_table[n+1].byte_blue  * cubS_u[2] + m[n+1].byte_blue  * cubS_u[3])));
 
   return 0;
 }

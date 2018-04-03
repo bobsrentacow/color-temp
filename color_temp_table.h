@@ -21,7 +21,18 @@
 //  r g b {0-255}
 //  #rgb  {00-ff} 
 
-const color_temp_t color_temp_table[] = {
+typedef struct color_temp_entry {
+  double kelvin;
+  double intensity;
+  double norm_red;
+  double norm_green;
+  double norm_blue;
+  double byte_red;
+  double byte_green;
+  double byte_blue;
+} color_temp_entry_t;
+
+const color_temp_entry_t color_temp_table[] = {
   { 1000, 2525000, 1, 0.0401, 0, 255, 56, 0},
   { 1100, 21620000, 1, 0.0631, 0, 255, 71, 0},
   { 1200, 131400000, 1, 0.086, 0, 255, 83, 0},
